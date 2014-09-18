@@ -1,0 +1,4 @@
+tell application "Terminal"
+	do script "cd Scripts; node ServerFinal2.js"
+	tell application "Finder" to set visible of process "Terminal" to false
+end tell
