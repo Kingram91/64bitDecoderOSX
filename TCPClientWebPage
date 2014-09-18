@@ -1,0 +1,181 @@
+<html>
+
+<head>
+    <title>TCPCLIENT Webpage</title>
+    <script src="../webtcp/lib/client/webtcp-0.0.1.min.js"></script>
+</head>
+
+<script>
+    var $D = function (id) {
+            return document.getElementById(id);
+        },
+        ws = null,
+        msgs = $D('messages');
+
+    var wsURI = "ws://10.2.5.104:1337"
+    var zipFile = document.getElementById('Zip');
+    var x = 'Hello WOrld';
+    var ws = null;
+    var fileslistObj = null;
+    var isConnected = false;
+
+    function msg(str) {
+        msgs.innerHTML += str + "\n";
+        msgs.scrollTop = msgs.scrollHeight;
+    }
+
+    function connectWebSocket() {
+        ws = new WebSocket(wsURI, 'echo-protocol');
+
+        ws.onopen = function () {
+            // onopen event occurs when socket connection is established.
+
+            isConnected = true;
+            console.log('Client Conected');
+            ws.send('I am the client and I\'m listening!');
+            console.log(ws.readyState);
+        };
+
+        ws.onclose = function (evt) {
+            onClose(evt)
+        };
+        ws.onmessage = function (evt) {
+            onMessage(evt)
+        };
+        ws.onerror = function (evt) {
+            onError(evt)
+        };
+    }
+
+    function onClose(evt) {
+        writeToScreen("DISCONNECTED");
+    }
+
+    function onMessage(evt) {
+        writeToScreen('<span style="color: blue;">RESPONSE: ' + evt.data + '</span>');
+    }
+
+    function onError(evt) {
+        writeToScreen('<span style="color: red;">ERROR:</span> ' + evt.data);
+    }
+
+    function doSend(message, callback) {
+        this.waitForConnection(function () {
+            ws.send(message);
+            writeToScreen("SENT: " + message);
+            if (typeof callback !== 'undefined') {
+                callback();
+            }
+        }, 1000);
+    }
+
+    this.waitForConnection = function (callback, interval) {
+        if (ws.readyState === 1) {
+            callback();
+        } else {
+            var that = this;
+            setTimeout(function () {
+                that.waitForConnection(callback);
+            }, interval);
+        }
+    };
+
+    function writeToScreen(message) {
+        document.getElementById("demo").innerHTML = message;
+    }
+
+    function utf8_tob64(str) {
+        //return window.btoa(str);
+        return window.btoa(encodeURIComponent(escape(str)));
+    }
+
+    // function handleFileSelect(event){
+    //     fileslistObj = event.target.files; //returns a FileList Object
+    //     var output = [];
+    //     for (var i = 0; f = fileslistObj[i]; i++) {
+    //         output.push('<li><strong>', escape(f.name), '</strong>(', f.type || 'n/a', ') -',f.size, ' bytes, last modified: ', f.lastModifiedDate ? f.lastModifiedDate.toLocaleDateString() : 'n/a', '</li>');
+    //     }
+    //     document.getElementById('list').innerHTML = '<ul>' + output.join('') + '</ul>';
+    // }
+
+    function sendIt() {
+        if (fileslistObj != null && isConnected) {
+            var binaryString;
+            var reader = new FileReader();
+            reader.onload = function (readerEvt) {
+                binaryString = readerEvt.target.result;
+            }
+            console.log(document.getElementById('fileItem').files[0]);
+            doSend(utf8_tob64(binaryString));
+        } else {
+            if (fileslistObj = null) {
+                console.log('No files selected');
+            }
+            if (!isConnected) {
+                console.log('Not Connected to Server');
+            }
+        }
+    }
+</script>
+
+<body>
+    Connect:
+    <input id='target'>&nbsp;
+    <input id='connectButton' type='button' value='Connect' onclick="connectWebSocket()">
+    <br>
+    <br>Log:
+    <br>
+    <textarea id="messages" cols=80 rows=25></textarea>
+    <p id="demo"></p>
+    <p id="text"></p>
+
+    <script>
+        //     document.getElementById('fileItem').addEventListener('change', handleFileSelect, false);
+    </script>
+    <input id='SendButton' type='button' value='Send To Server' onclick='sendIt()'>
+
+
+    <div>
+        <div>
+            <label for="filePicker">Choose or drag a file:</label>
+            <br>
+            <input type="file" id="fileItem" name="files[]" multiple/>
+            <output id="list"></output>
+            <script>
+                var handleFileSelect = function (evt) {
+                    var files = evt.target.files;
+                    var file = files[0];
+
+                    if (files && file) {
+                        var reader = new FileReader();
+                        var binaryString;
+
+                        reader.onload = function (readerEvt) {
+                            binaryString = readerEvt.target.result;
+                            document.getElementById("base64textarea").value = btoa(binaryString);
+                            doSend(btoa(binaryString));
+                        };
+
+                        reader.readAsBinaryString(file);
+                    }
+                };
+
+                if (window.File && window.FileReader && window.FileList && window.Blob) {
+                    document.getElementById('fileItem').addEventListener('change', handleFileSelect, false);
+                } else {
+                    alert('The File APIs are not fully supported in this browser.');
+                }
+            </script>
+
+        </div>
+        <br>
+        <div>
+            <h1>Base64 encoded version</h1>
+            <textarea id="base64textarea" placeholder="Base64 will appear here" cols="50" rows="15"></textarea>
+        </div>
+    </div>
+
+
+</body>
+
+</html>
